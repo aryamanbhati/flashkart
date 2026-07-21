@@ -1,7 +1,6 @@
 # Flashkart
 
-<!-- Replace OWNER/REPO with your GitHub path after pushing. -->
-![CI](https://github.com/OWNER/REPO/actions/workflows/ci.yml/badge.svg)
+![CI](https://github.com/aryamanbhati/flashkart/actions/workflows/ci.yml/badge.svg)
 
 A real-time flash-sale commerce platform built to **survive the correctness failures that break naïve e-commerce stacks under load**: overselling, retry-driven double-charges, ghost inventory from abandoned carts, ratelimit gaming, and payment-flow desyncs.
 
