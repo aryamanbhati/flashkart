@@ -24,8 +24,9 @@ async function main() {
   await Promise.all([connectMongo(), redis.ping()]);
 
   const app = createApp();
-  const server = app.listen(env.API_PORT, () => {
-    logger.info({ port: env.API_PORT, env: env.NODE_ENV }, "api listening");
+  const port = env.PORT ?? env.API_PORT;
+  const server = app.listen(port, () => {
+    logger.info({ port, env: env.NODE_ENV }, "api listening");
   });
 
   const realtime = attachRealtime(server);

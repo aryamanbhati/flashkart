@@ -14,6 +14,9 @@ import "dotenv/config";
 const envSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
 
+  // Railway / Fly / Render / most PaaS pass `PORT`; local dev uses `API_PORT`.
+  // Prefer PORT when set, fall back to API_PORT, fall back to 4000.
+  PORT: z.coerce.number().int().positive().optional(),
   API_PORT: z.coerce.number().int().positive().default(4000),
   CORS_ORIGIN: z.string().url().default("http://localhost:5173"),
 

@@ -9,3 +9,8 @@
 **/.vscode
 **/.idea
 **/*.tsbuildinfo
+**/vitest.config.ts
+**/*.test.ts
+**/src/test/
+.github/
+.claude/
