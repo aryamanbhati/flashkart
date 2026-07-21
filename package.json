@@ -1,0 +1,28 @@
+{
+  "name": "flashkart",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Real-time flash-sale commerce platform with atomic, non-oversell inventory.",
+  "type": "module",
+  "workspaces": [
+    "packages/*",
+    "api",
+    "worker",
+    "web"
+  ],
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "scripts": {
+    "dev:api": "npm run dev --workspace api",
+    "dev:worker": "npm run dev --workspace worker",
+    "dev:web": "npm run dev --workspace web",
+    "build": "npm run build --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm test --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "up": "docker compose up --build",
+    "down": "docker compose down",
+    "logs": "docker compose logs -f"
+  }
+}

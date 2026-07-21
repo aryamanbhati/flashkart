@@ -1,0 +1,12 @@
+# Force LF everywhere — containers run Linux, editors on Windows/Mac shouldn't
+# introduce CRLF into tracked files. Prevents phantom diffs from cross-OS teams.
+* text=auto eol=lf
+
+# Binary types — leave them alone.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.webp binary
+*.pdf binary

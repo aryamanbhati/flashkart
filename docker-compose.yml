@@ -1,0 +1,139 @@
+# Flashkart — dev-mode docker-compose.
+# Brings up: mongo, redis, api, worker, web.
+# Prod builds are a separate concern (multi-stage Dockerfiles); this file is optimised for `docker compose up` + hot reload.
+
+services:
+  # ------------------------------------------------------------------
+  # MongoDB — primary durable store for users, products, orders, etc.
+  # Named volume so data survives `docker compose down`.
+  # ------------------------------------------------------------------
+  mongo:
+    image: mongo:7
+    container_name: flashkart-mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.runCommand({ ping: 1 }).ok"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+
+  # ------------------------------------------------------------------
+  # Redis — cache + atomic inventory + rate limit + BullMQ backend + pub/sub.
+  # `appendonly yes` = AOF durability. Without it, a crash mid-sale loses stock counters.
+  # `appendfsync everysec` (Redis default when AOF is on) = up to 1s of writes at risk.
+  # ------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: flashkart-redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes", "--appendfsync", "everysec"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 5s
+
+  # ------------------------------------------------------------------
+  # API — Express + TS. `tsx watch` = fast reload without a build step.
+  # Bind-mounted src for live reload; node_modules is a named volume so the
+  # container's Linux binaries don't collide with Windows-installed ones.
+  # ------------------------------------------------------------------
+  api:
+    build:
+      context: .
+      dockerfile: api/Dockerfile.dev
+    container_name: flashkart-api
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      # Override for in-container hostnames (compose service names).
+      MONGO_URI: mongodb://mongo:27017/flashkart
+      REDIS_URL: redis://redis:6379
+      # Windows bind mounts don't forward filesystem events into the container,
+      # so tsx/chokidar must POLL for changes to hot-reload. Slightly more CPU,
+      # but reloads actually work.
+      CHOKIDAR_USEPOLLING: "true"
+    ports:
+      - "4000:4000"
+    volumes:
+      - ./api:/app/api
+      - ./packages:/app/packages
+      - ./tsconfig.base.json:/app/tsconfig.base.json:ro
+      - api-node-modules:/app/api/node_modules
+      - shared-node-modules:/app/packages/shared/node_modules
+      - root-node-modules:/app/node_modules
+    depends_on:
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  # ------------------------------------------------------------------
+  # Worker — BullMQ consumer. Same tsx-watch dev pattern as api.
+  # Kept as a separate service (not a thread in the api) because in prod
+  # we want to scale workers independently of api pods.
+  # ------------------------------------------------------------------
+  worker:
+    build:
+      context: .
+      dockerfile: worker/Dockerfile.dev
+    container_name: flashkart-worker
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      MONGO_URI: mongodb://mongo:27017/flashkart
+      REDIS_URL: redis://redis:6379
+      CHOKIDAR_USEPOLLING: "true"
+    volumes:
+      - ./worker:/app/worker
+      - ./packages:/app/packages
+      - ./tsconfig.base.json:/app/tsconfig.base.json:ro
+      - worker-node-modules:/app/worker/node_modules
+      - shared-node-modules-worker:/app/packages/shared/node_modules
+      - root-node-modules-worker:/app/node_modules
+    depends_on:
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  # ------------------------------------------------------------------
+  # Web — Vite dev server. Exposed on 5173.
+  # ------------------------------------------------------------------
+  web:
+    build:
+      context: .
+      dockerfile: web/Dockerfile.dev
+    container_name: flashkart-web
+    restart: unless-stopped
+    environment:
+      VITE_API_URL: http://localhost:4000
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./web:/app/web
+      - ./tsconfig.base.json:/app/tsconfig.base.json:ro
+      - web-node-modules:/app/web/node_modules
+      - root-node-modules-web:/app/node_modules
+
+volumes:
+  mongo-data:
+  redis-data:
+  api-node-modules:
+  worker-node-modules:
+  web-node-modules:
+  shared-node-modules:
+  shared-node-modules-worker:
+  root-node-modules:
+  root-node-modules-worker:
+  root-node-modules-web:

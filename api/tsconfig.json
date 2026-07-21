@@ -1,0 +1,13 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": "src",
+    "types": ["node"],
+    // Relaxed for now — retrofitting `req.params.foo!` across every route is
+    // a big yak-shave. Kept true in tsconfig.base for new packages.
+    "noUncheckedIndexedAccess": false
+  },
+  "include": ["src/**/*"],
+  "exclude": ["src/scripts/**"]
+}

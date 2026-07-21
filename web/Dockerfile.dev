@@ -1,0 +1,19 @@
+FROM node:22-alpine
+
+WORKDIR /app
+
+COPY package.json ./
+COPY api/package.json ./api/
+COPY worker/package.json ./worker/
+COPY web/package.json ./web/
+COPY packages/shared/package.json ./packages/shared/
+
+RUN npm install --workspaces --include-workspace-root
+
+COPY web ./web
+
+WORKDIR /app/web
+
+EXPOSE 5173
+
+CMD ["npm", "run", "dev"]

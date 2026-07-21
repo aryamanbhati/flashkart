@@ -1,0 +1,31 @@
+# Dev-mode Dockerfile for the api.
+# Prod would be a multi-stage build with `tsc` compile + a slim runtime image;
+# this file is optimized for `docker compose up` with hot reload via tsx watch.
+
+FROM node:22-alpine
+
+WORKDIR /app
+
+# Copy every workspace's package.json so `npm install` sees the full graph.
+# We copy manifests BEFORE source to maximise Docker layer cache hits — a
+# source-only change won't trigger a re-install.
+COPY package.json ./
+COPY api/package.json ./api/
+COPY worker/package.json ./worker/
+COPY web/package.json ./web/
+COPY packages/shared/package.json ./packages/shared/
+
+# Install the entire workspace graph. This is what seeds the named `node_modules`
+# volumes on first mount — see docker-compose.yml.
+RUN npm install --workspaces --include-workspace-root
+
+# Copy source. In dev this is immediately overlaid by the bind mount from the
+# host, but we still need it at build time so the initial image works standalone.
+COPY packages/shared ./packages/shared
+COPY api ./api
+
+WORKDIR /app/api
+
+EXPOSE 4000
+
+CMD ["npm", "run", "dev"]
